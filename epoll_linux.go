@@ -9,25 +9,26 @@ const writeEvent = syscall.EPOLLOUT | syscall.EPOLLONESHOT
 const readWriteEvent = syscall.EPOLLIN | syscall.EPOLLOUT | syscall.EPOLLONESHOT
 
 type Epoll struct {
-	epfd int // epoll fd
-	wfd int // event fd
-	closed  chan struct{}
+	epfd   int // epoll fd
+	wfd    int // event fd
+	closed chan struct{}
 }
 
 func New() (*Epoll, error) {
 	epoll := new(Epoll)
 	// 创建Epoll文件描述符
-	epoll.epfd, err := syscall.EpollCreate1(0)
+	epfd, err := syscall.EpollCreate1(0)
 	if err != nil {
 		return nil, err
 	}
+	epoll.epfd = epfd
 
 	r0, _, errno := syscall.Syscall(syscall.SYS_EVENTFD2, 0, 0, 0)
 	if errno != 0 {
 		syscall.Close(epoll.epfd)
 		return nil, errno
 	}
-	epoll.wfd := int(r0)
+	epoll.wfd = int(r0)
 
 	err = syscall.EpollCtl(epoll.epfd, syscall.EPOLL_CTL_ADD, epoll.wfd, &syscall.EpollEvent{
 		Events: syscall.EPOLLIN,
